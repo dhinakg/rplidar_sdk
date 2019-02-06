@@ -3,7 +3,7 @@
 # *
 # *  Copyright (c) 2009 - 2014 RoboPeak Team
 # *  http://www.robopeak.com
-# *  Copyright (c) 2014 - 2016 Shanghai Slamtec Co., Ltd.
+# *  Copyright (c) 2014 - 2018 Shanghai Slamtec Co., Ltd.
 # *  http://www.slamtec.com
 # *
 # */
@@ -58,7 +58,7 @@ CXXFLAGS +=
 endif
 
 BUILD_TARGET_ARCH?=$(BUILD_HOST_ARCH)
-BUILD_TARGET_PLATFORM?=Linux
+BUILD_TARGET_PLATFORM?=$(BUILD_HOST_PLATFORM)
 
 RM = rm -f
 MV = mv -f

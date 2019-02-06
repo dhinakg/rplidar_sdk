@@ -1,5 +1,6 @@
 #/*
 # * Copyright (C) 2014  RoboPeak
+# * Copyright (C) 2014 - 2018 Shanghai Slamtec Co., Ltd.
 # *
 # * This program is free software: you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -18,7 +19,7 @@
 #
 HOME_TREE := ../
 
-MAKE_TARGETS := chezy_lidar
+MAKE_TARGETS := simple_grabber ultra_simple chezy_liadr
 
 include $(HOME_TREE)/mak_def.inc
 
