@@ -46,6 +46,8 @@
 #include "rplidar_driver_TCP.h"
 
 #include <algorithm>
+#include <sys/time.h>
+
 
 #ifndef min
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
@@ -72,6 +74,7 @@ static void convert(const rplidar_response_measurement_node_t& from, rplidar_res
     to.dist_mm_q2 = from.distance_q2;
     to.flag = (from.sync_quality & RPLIDAR_RESP_MEASUREMENT_SYNCBIT);  // trasfer syncbit to HQ flag field
     to.quality = (from.sync_quality >> RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;  //remove the last two bits and then make quality from 0-63 to 0-255
+    to.timestamp = from.timestamp;
 }
 
 static void convert(const rplidar_response_measurement_node_hq_t& from, rplidar_response_measurement_node_t& to)
@@ -79,6 +82,7 @@ static void convert(const rplidar_response_measurement_node_hq_t& from, rplidar_
     to.sync_quality = (from.flag & RPLIDAR_RESP_MEASUREMENT_SYNCBIT) | ((from.quality >> RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
     to.angle_q6_checkbit = 1 | (((from.angle_z_q14 * 90) >> 8) << RPLIDAR_RESP_MEASUREMENT_ANGLE_SHIFT);
     to.distance_q2 = from.dist_mm_q2 > _u16(-1) ? _u16(0) : _u16(from.dist_mm_q2);
+    to.timestamp = from.timestamp;
 }
 
 // Factory Impl
@@ -780,6 +784,10 @@ void     RPlidarDriverImplCommon::_capsuleToNormal(const rplidar_response_capsul
         int currentAngle_raw_q16 = (prevStartAngle_q8 << 8);
         for (size_t pos = 0; pos < _countof(_cached_previous_capsuledata.cabins); ++pos)
         {
+            struct timespec tv;
+            clock_gettime(CLOCK_REALTIME, &tv);
+            _u64 ts = ((_u64) tv.tv_sec * 1000) + (tv.tv_nsec / 1e6);
+
             int dist_q2[2];
             int angle_q6[2];
             int syncBit[2];
@@ -810,6 +818,7 @@ void     RPlidarDriverImplCommon::_capsuleToNormal(const rplidar_response_capsul
                 node.flag = (syncBit[cpos] | ((!syncBit[cpos]) << 1));
                 node.quality = dist_q2[cpos] ? (0x2f << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) : 0;
                 node.dist_mm_q2 = dist_q2[cpos];
+                node.timestamp = ts;
 
                 nodebuffer[nodeCount++] = node;
              }

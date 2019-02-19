@@ -19,7 +19,7 @@
 #
 HOME_TREE := ../
 
-MAKE_TARGETS := simple_grabber ultra_simple chezy_liadr
+MAKE_TARGETS := simple_grabber ultra_simple 
 
 include $(HOME_TREE)/mak_def.inc
 

@@ -157,6 +157,7 @@ typedef struct _rplidar_response_measurement_node_t {
     _u8    sync_quality;      // syncbit:1;syncbit_inverse:1;quality:6;
     _u16   angle_q6_checkbit; // check_bit:1;angle_q6:15;
     _u16   distance_q2;
+    _u64   timestamp;
 } __attribute__((packed)) rplidar_response_measurement_node_t;
 
 //[distance_sync flags]
@@ -206,6 +207,7 @@ typedef struct rplidar_response_measurement_node_hq_t {
     _u32   dist_mm_q2; 
     _u8    quality;  
     _u8    flag;
+    _u64   timestamp;
 } __attribute__((packed)) rplidar_response_measurement_node_hq_t;
 
 typedef struct _rplidar_response_hq_capsule_measurement_nodes_t{
