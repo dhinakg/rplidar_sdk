@@ -24,6 +24,7 @@ matrix:
 script:
   - cd sdk
   - make clean
+  - chmod +x *.sh
   - ./BUILD_FOR_ROBORIO.sh
 #after_success:
 #  - wget https://raw.githubusercontent.com/dhinakg/travis-ci-discord-webhook/master/send.sh
