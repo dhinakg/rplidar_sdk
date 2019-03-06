@@ -3,7 +3,7 @@
  *
  *  Copyright (c) 2009 - 2014 RoboPeak Team
  *  http://www.robopeak.com
- *  Copyright (c) 2014 - 2018 Shanghai Slamtec Co., Ltd.
+ *  Copyright (c) 2014 - 2019 Shanghai Slamtec Co., Ltd.
  *  http://www.slamtec.com
  *
  */
@@ -127,7 +127,7 @@ typedef struct _rplidar_payload_acc_board_flag_t {
 //added in FW ver 1.24
 #define RPLIDAR_ANS_TYPE_GET_LIDAR_CONF     0x20
 #define RPLIDAR_ANS_TYPE_SET_LIDAR_CONF     0x21
-
+#define RPLIDAR_ANS_TYPE_MEASUREMENT_DENSE_CAPSULED        0x85
 #define RPLIDAR_ANS_TYPE_ACC_BOARD_FLAG   0xFF
 
 #define RPLIDAR_RESP_ACC_BOARD_FLAG_MOTOR_CTRL_SUPPORT_MASK      (0x1)
@@ -157,7 +157,6 @@ typedef struct _rplidar_response_measurement_node_t {
     _u8    sync_quality;      // syncbit:1;syncbit_inverse:1;quality:6;
     _u16   angle_q6_checkbit; // check_bit:1;angle_q6:15;
     _u16   distance_q2;
-    _u64   timestamp;
 } __attribute__((packed)) rplidar_response_measurement_node_t;
 
 //[distance_sync flags]
@@ -184,6 +183,18 @@ typedef struct _rplidar_response_capsule_measurement_nodes_t {
     _u16                            start_angle_sync_q6;
     rplidar_response_cabin_nodes_t  cabins[16];
 } __attribute__((packed)) rplidar_response_capsule_measurement_nodes_t;
+
+typedef struct _rplidar_response_dense_cabin_nodes_t {
+    _u16   distance; 
+} __attribute__((packed)) rplidar_response_dense_cabin_nodes_t;
+
+typedef struct _rplidar_response_dense_capsule_measurement_nodes_t {
+    _u8                             s_checksum_1; // see [s_checksum_1]
+    _u8                             s_checksum_2; // see [s_checksum_1]
+    _u16                            start_angle_sync_q6;
+    rplidar_response_dense_cabin_nodes_t  cabins[40];
+} __attribute__((packed)) rplidar_response_dense_capsule_measurement_nodes_t;
+
 // ext1 : x2 boost mode
 
 #define RPLIDAR_RESP_MEASUREMENT_EXP_ULTRA_MAJOR_BITS     12
@@ -207,7 +218,6 @@ typedef struct rplidar_response_measurement_node_hq_t {
     _u32   dist_mm_q2; 
     _u8    quality;  
     _u8    flag;
-    _u64   timestamp;
 } __attribute__((packed)) rplidar_response_measurement_node_hq_t;
 
 typedef struct _rplidar_response_hq_capsule_measurement_nodes_t{

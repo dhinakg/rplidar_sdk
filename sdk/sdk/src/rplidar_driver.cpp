@@ -3,7 +3,7 @@
  *
  *  Copyright (c) 2009 - 2014 RoboPeak Team
  *  http://www.robopeak.com
- *  Copyright (c) 2014 - 2018 Shanghai Slamtec Co., Ltd.
+ *  Copyright (c) 2014 - 2019 Shanghai Slamtec Co., Ltd.
  *  http://www.slamtec.com
  *
  */
@@ -46,8 +46,6 @@
 #include "rplidar_driver_TCP.h"
 
 #include <algorithm>
-#include <sys/time.h>
-
 
 #ifndef min
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
@@ -74,7 +72,6 @@ static void convert(const rplidar_response_measurement_node_t& from, rplidar_res
     to.dist_mm_q2 = from.distance_q2;
     to.flag = (from.sync_quality & RPLIDAR_RESP_MEASUREMENT_SYNCBIT);  // trasfer syncbit to HQ flag field
     to.quality = (from.sync_quality >> RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;  //remove the last two bits and then make quality from 0-63 to 0-255
-    to.timestamp = from.timestamp;
 }
 
 static void convert(const rplidar_response_measurement_node_hq_t& from, rplidar_response_measurement_node_t& to)
@@ -82,7 +79,6 @@ static void convert(const rplidar_response_measurement_node_hq_t& from, rplidar_
     to.sync_quality = (from.flag & RPLIDAR_RESP_MEASUREMENT_SYNCBIT) | ((from.quality >> RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
     to.angle_q6_checkbit = 1 | (((from.angle_z_q14 * 90) >> 8) << RPLIDAR_RESP_MEASUREMENT_ANGLE_SHIFT);
     to.distance_q2 = from.dist_mm_q2 > _u16(-1) ? _u16(0) : _u16(from.dist_mm_q2);
-    to.timestamp = from.timestamp;
 }
 
 // Factory Impl
@@ -133,6 +129,16 @@ u_result RPlidarDriverImplCommon::reset(_u32 timeout)
             return ans;
         }
     }
+    return RESULT_OK;
+}
+
+
+u_result RPlidarDriverImplCommon::clearNetSerialRxCache()
+{
+    if (!isConnected()) return RESULT_OPERATION_FAIL;
+
+    _chanDev->flush();
+  
     return RESULT_OK;
 }
 
@@ -675,9 +681,17 @@ u_result RPlidarDriverImplCommon::_cacheCapsuledScanData()
                 continue;
             }
         }
+        switch (_cached_express_flag) 
+        {
+        case 0:
+            _capsuleToNormal(capsule_node, local_buf, count);
+            break;
+        case 1:
+            _dense_capsuleToNormal(capsule_node, local_buf, count);
+            break;
+        }
+        //
         
-        _capsuleToNormal(capsule_node, local_buf, count);
-
         for (size_t pos = 0; pos < count; ++pos)
         {
             if (local_buf[pos].flag & RPLIDAR_RESP_MEASUREMENT_SYNCBIT)
@@ -784,10 +798,6 @@ void     RPlidarDriverImplCommon::_capsuleToNormal(const rplidar_response_capsul
         int currentAngle_raw_q16 = (prevStartAngle_q8 << 8);
         for (size_t pos = 0; pos < _countof(_cached_previous_capsuledata.cabins); ++pos)
         {
-            struct timespec tv;
-            clock_gettime(CLOCK_REALTIME, &tv);
-            _u64 ts = ((_u64) tv.tv_sec * 1000) + (tv.tv_nsec / 1e6);
-
             int dist_q2[2];
             int angle_q6[2];
             int syncBit[2];
@@ -818,7 +828,6 @@ void     RPlidarDriverImplCommon::_capsuleToNormal(const rplidar_response_capsul
                 node.flag = (syncBit[cpos] | ((!syncBit[cpos]) << 1));
                 node.quality = dist_q2[cpos] ? (0x2f << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) : 0;
                 node.dist_mm_q2 = dist_q2[cpos];
-                node.timestamp = ts;
 
                 nodebuffer[nodeCount++] = node;
              }
@@ -830,7 +839,55 @@ void     RPlidarDriverImplCommon::_capsuleToNormal(const rplidar_response_capsul
     _is_previous_capsuledataRdy = true;
 }
 
-//*******************************************HQ support********************************
+void     RPlidarDriverImplCommon::_dense_capsuleToNormal(const rplidar_response_capsule_measurement_nodes_t & capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t &nodeCount)
+{
+    const rplidar_response_dense_capsule_measurement_nodes_t *dense_capsule = reinterpret_cast<const rplidar_response_dense_capsule_measurement_nodes_t*>(&capsule);
+    nodeCount = 0;
+    if (_is_previous_capsuledataRdy) {
+        int diffAngle_q8;
+        int currentStartAngle_q8 = ((dense_capsule->start_angle_sync_q6 & 0x7FFF) << 2);
+        int prevStartAngle_q8 = ((_cached_previous_dense_capsuledata.start_angle_sync_q6 & 0x7FFF) << 2);
+
+        diffAngle_q8 = (currentStartAngle_q8)-(prevStartAngle_q8);
+        if (prevStartAngle_q8 >  currentStartAngle_q8) {
+            diffAngle_q8 += (360 << 8);
+        }
+
+        int angleInc_q16 = (diffAngle_q8 << 8)/40;
+        int currentAngle_raw_q16 = (prevStartAngle_q8 << 8);
+        for (size_t pos = 0; pos < _countof(_cached_previous_dense_capsuledata.cabins); ++pos)
+        {
+            int dist_q2;
+            int angle_q6;
+            int syncBit;
+            const int dist = static_cast<const int>(_cached_previous_dense_capsuledata.cabins[pos].distance);
+            dist_q2 = dist << 2;
+            angle_q6 = (currentAngle_raw_q16 >> 10);
+            syncBit = (((currentAngle_raw_q16 + angleInc_q16) % (360 << 16)) < angleInc_q16) ? 1 : 0;
+            currentAngle_raw_q16 += angleInc_q16;
+
+            if (angle_q6 < 0) angle_q6 += (360 << 6);
+            if (angle_q6 >= (360 << 6)) angle_q6 -= (360 << 6);
+
+            
+
+            rplidar_response_measurement_node_hq_t node;
+
+            node.angle_z_q14 = _u16((angle_q6 << 8) / 90);
+            node.flag = (syncBit | ((!syncBit) << 1));
+            node.quality = dist_q2 ? (0x2f << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) : 0;
+            node.dist_mm_q2 = dist_q2;
+
+            nodebuffer[nodeCount++] = node;
+            
+
+        }
+    }
+
+    _cached_previous_dense_capsuledata = *dense_capsule;
+    _is_previous_capsuledataRdy = true;
+}
+
 u_result RPlidarDriverImplCommon::_cacheHqScanData()
 {
     rplidar_response_hq_capsule_measurement_nodes_t    hq_node;
@@ -1610,6 +1667,8 @@ u_result RPlidarDriverImplCommon::startScanExpress(bool force, _u16 scanMode, _u
             {
                 return RESULT_INVALID_DATA;
             }
+           
+
         }
         else
         {
@@ -1627,9 +1686,13 @@ u_result RPlidarDriverImplCommon::startScanExpress(bool force, _u16 scanMode, _u
     //get scan answer type to specify how to wait data
     _u8 scanAnsType;
     if (ifSupportLidarConf)
+    {      
         getScanModeAnsType(scanAnsType, scanMode);
+    }
     else
+    {
         scanAnsType = RPLIDAR_ANS_TYPE_MEASUREMENT_CAPSULED;
+    }
 
     {
         rp::hal::AutoLocker l(_lock);
@@ -1639,7 +1702,7 @@ u_result RPlidarDriverImplCommon::startScanExpress(bool force, _u16 scanMode, _u
         if (scanMode != RPLIDAR_CONF_SCAN_COMMAND_STD && scanMode != RPLIDAR_CONF_SCAN_COMMAND_EXPRESS)
             scanReq.working_mode = _u8(scanMode);
         scanReq.working_flags = options;
-        
+
         if (IS_FAIL(ans = _sendCommand(RPLIDAR_CMD_EXPRESS_SCAN, &scanReq, sizeof(scanReq)))) {
             return ans;
         }
@@ -1656,22 +1719,32 @@ u_result RPlidarDriverImplCommon::startScanExpress(bool force, _u16 scanMode, _u
         }
 
         _u32 header_size = (response_header.size_q30_subtype & RPLIDAR_ANS_HEADER_SIZE_MASK);
-        
+
         if (scanAnsType == RPLIDAR_ANS_TYPE_MEASUREMENT_CAPSULED)
         {
             if (header_size < sizeof(rplidar_response_capsule_measurement_nodes_t)) {
                 return RESULT_INVALID_DATA;
             }
+            _cached_express_flag = 0;
             _isScanning = true;
             _cachethread = CLASS_THREAD(RPlidarDriverImplCommon, _cacheCapsuledScanData);
-		}else if(scanAnsType ==RPLIDAR_ANS_TYPE_MEASUREMENT_HQ ){
-			 if (header_size < sizeof(rplidar_response_hq_capsule_measurement_nodes_t)) {
+        }
+        else if (scanAnsType == RPLIDAR_ANS_TYPE_MEASUREMENT_DENSE_CAPSULED)
+        {
+            if (header_size < sizeof(rplidar_response_capsule_measurement_nodes_t)) {
                 return RESULT_INVALID_DATA;
             }
-			 _isScanning = true;
-			 _cachethread = CLASS_THREAD(RPlidarDriverImplCommon, _cacheHqScanData);
-		
-		}
+            _cached_express_flag = 1;
+            _isScanning = true;
+            _cachethread = CLASS_THREAD(RPlidarDriverImplCommon, _cacheCapsuledScanData);
+        }
+        else if (scanAnsType == RPLIDAR_ANS_TYPE_MEASUREMENT_HQ) {
+            if (header_size < sizeof(rplidar_response_hq_capsule_measurement_nodes_t)) {
+                return RESULT_INVALID_DATA;
+            }
+            _isScanning = true;
+            _cachethread = CLASS_THREAD(RPlidarDriverImplCommon, _cacheHqScanData);
+        }
         else
         {
             if (header_size < sizeof(rplidar_response_ultra_capsule_measurement_nodes_t)) {
