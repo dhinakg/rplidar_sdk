@@ -194,6 +194,7 @@ int main(int argc, const char * argv[]) {
     signal(SIGINT, ctrlc);
     
     drv->startMotor();
+    drv->setMotorPWM(300);
     // start scan...
     drv->startScan(0,1);
 
