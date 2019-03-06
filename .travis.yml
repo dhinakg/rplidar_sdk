@@ -8,7 +8,7 @@ matrix:
     addons:
       apt:
         sources:
-          - ppa:wpilib/toolchain
+          - sourceline: 'ppa:wpilib/toolchain'
         packages: 
           - frcmake
           - frc-toolchain
@@ -17,7 +17,7 @@ matrix:
     addons:
       apt:
         sources:
-          - ppa:wpilib/toolchain
+          - sourceline: 'ppa:wpilib/toolchain'
         packages: 
           - frcmake
           - frc-toolchain
