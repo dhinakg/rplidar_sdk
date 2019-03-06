@@ -81,7 +81,7 @@ static void convert(const rplidar_response_measurement_node_hq_t& from, rplidar_
     to.sync_quality = (from.flag & RPLIDAR_RESP_MEASUREMENT_SYNCBIT) | ((from.quality >> RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
     to.angle_q6_checkbit = 1 | (((from.angle_z_q14 * 90) >> 8) << RPLIDAR_RESP_MEASUREMENT_ANGLE_SHIFT);
     to.distance_q2 = from.dist_mm_q2 > _u16(-1) ? _u16(0) : _u16(from.dist_mm_q2);
-    to.timestamp = from.timestamp;F
+    to.timestamp = from.timestamp;
 }
 
 // Factory Impl
@@ -801,8 +801,8 @@ void     RPlidarDriverImplCommon::_capsuleToNormal(const rplidar_response_capsul
         int currentAngle_raw_q16 = (prevStartAngle_q8 << 8);
         for (size_t pos = 0; pos < _countof(_cached_previous_capsuledata.cabins); ++pos)
         {
-            struct timespec tv;	
-            clock_gettime(CLOCK_REALTIME, &tv);	
+            struct timespec tv;
+            clock_gettime(CLOCK_REALTIME, &tv);
             _u64 ts = ((_u64) tv.tv_sec * 1000) + (tv.tv_nsec / 1e6);
 
             int dist_q2[2];
