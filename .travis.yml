@@ -1,0 +1,51 @@
+language: cpp
+compiler: gcc
+script: make
+matrix:
+  include:
+  - os: linux
+    dist: trusty
+    addons:
+      apt:
+        sources:
+          - sourceline: 'ppa:wpilib/toolchain'
+        packages: 
+          - frcmake
+          - frc-toolchain
+  - os: linux
+    dist: xenial
+    addons:
+      apt:
+        sources:
+          - sourceline: 'ppa:wpilib/toolchain'
+        packages: 
+          - frcmake
+          - frc-toolchain
+script:
+  - cd sdk
+  - make clean
+  - chmod +x *.sh
+  - ./BUILD_FOR_ROBORIO.sh
+#after_success:
+#  - wget https://raw.githubusercontent.com/dhinakg/travis-ci-discord-webhook/master/send.sh
+#  - chmod +x send.sh
+#  - ./send.sh success $WEBHOOK_URL
+#after_failure:
+#  - wget https://raw.githubusercontent.com/dhinakg/travis-ci-discord-webhook/master/send.sh
+#  - chmod +x send.sh
+#  - ./send.sh failure $WEBHOOK_URL
+#notifications:
+#  webhooks:
+#    urls:
+#      # regular skyhook
+#      - secure: "bkydVgJMA9w/nq405fFEf/0/ljrDTWzoSnKbqKB1xbp5517Y3lspHhkug++yK+dnvysbvp2uVHe2AytLz6lTKU3SLaFJoleOlV6QCRxU/VqpwwXx439FyzSeABlzHxc+xA6KsGdyOOrdiYRmoHIfDFQXw3G0nCCwWiySTTGgZCD39SBLkGBA0Rv9WOcL6DNpTKB9diT0TZ3NjiuVFELr6M8uOseU/oqp5HZJ7SijHMxBq1Lr0pOiHbhebG3my5KZe84PBPl5WhHDqYYWGXK/KFH0aHSPim7ZthMxhu6HmVIu2Rpy2d+xCJxfevzwaW6VyHoiA6pzzNhKnAkbvbOeO++Wbk/mcaZUhMOZK32xQ/+VAYv+/eJQFEJCUmqNmGujiTjps6qFiGTo0UFi/PHWZXm7NH0gPkSyNwsZjPPOxf+BPaclL0KWfENofpV9SSg322LulW5VPTkj13sGnIrTPX0Z+/KDt41ztZ7WFyM/irgh16+H3XxocE5l/GQdJ96iyTkhAKs1WDg+OiSXoza3YAu1DwSbRnuCtmnumoHoHJo2SHLDMhKvxXxbOLYASHlZhA+zPdq7uiFqtCTzX2qgot/akZG+1c0j+zPF+muslYYNn25SVXi5lRVmYC281RFIKMTV0QbkZYKzuFRpM5c/qQMniKF8LYoj23voHLqXCqw="
+#      # skyhook with dev server
+#      - secure: "xDr7PnD+7pOe1u1+OB0xcH5TmqW1O7DMxEBxu8WK4vNLSiQUe943u+XR0Ai5vJ1JhKDOtOUMqUaHhGRqFNfeOsNbDJSi1XyDoggqWK0lqmzhsDwAGIXYf06Np9nZG2PVjCBerWXtR58FVP9IZCys5egRn5UPhi7l2I5cjUwAVWM5bA6QCAZnSjCxmkJVbwtAv2IqhCTuH3ja6E+UbIli7mSrsQsXf3pzyelPQGj+UOBvGYb7r2Swu7uIqIKRXhx5qvHUSIEMBKlnhkv9YLfFyjdXlxE33WOhK7LIlkg2GoSCWOnfR9xc9uocqZD6o9Wz9uVP/q6yqVL7ADQdggP9Lv7oSlxfYpS0wVOWIaFCmx0EmvksG1bd97nIVcXRP/bc9JctfiJdW8Tu5txEAEl2lmlLxsrWpJIzMyKM7QVTuryDOYXwszwO63rf/8jmx5xbUfPn5BnfSqKJF7flJg0Qar4AhgUwaK7nGpKKfDXH3pmg+LOrMRSbhqlS2yfduW+c27O70LWydAkFI1xe3HrtJeysa48ygW2i7+h8+pB2GdC3nSeQBz0kaGwfFLtvSHAzloICetvR1wpQcNoFHuFJ5mjYqb6gmXc16u2vxsgIGeY2uTyL7CnSvwEQ1cFAu4FzWQumqVzUFzIuMi6dr/2J7rGZu259KbNTrP3XXc1FVYg="
+#    on_success: always
+#    on_failure: always
+#    on_start: always
+#    on_cancel: always
+#    on_error: always
+#env:
+#  global:
+#    secure: beXXx86fjwYakA4pVrFEJBzvbimQgn6aqyfZJUJ8UpXKswCrU0e5IVRHVhgtJJIcEX6FClJ91pCTdAGn0i2r4GkPTl/+QL3duoskPjA1n4wupO5sM9iCni8A7j+ewctVnM3hSaHHBAZSYdEUyZ/IxG0hpBIUOKegF3nGW4Z0OKJQ2EkSynuR1ugbe6aE8UCpTcxTFkmlyPCYrTcCBGChzSf03Op84qh181FRABSexVefmbA+6B+F/3LmNuuZ1XJEe3e0iJrgDkV7gPBtRfznfd+bNoylWc8zyil1etsUuxEh8IbSXgheRuQS1HCCU4t7KR7ACHNN+Z3aTrpTz+aEEoURL7Fq5dg1ZnWzHGm1z5Yjj8zLk0/chz0lXyTwBp1aaCOrAXspm6PaSDBRZJOJRvCOdrJ1IgXp7t6TJhRcb8Nd2qqH/IH+f5QPziG2EIXdeU4OBjz587LPgX9WEKhTttVXQbJ4zkYPDWjY8JfMuvaVP1OLP+vS/27c+JxFkSztWF9NOaDs8CYRlpvldzAwIxZawwUZm16qwYSDb3h4bPoUEsAwE9gpAe69Ygwo2b8wC2/vkx1vHn2T//ycfZjY9dwjGm62Ke3EA13MXkV2k4Y21zdjRrUV39vX54e4zIfKGNc/pP8Th9kEv4HRQ8E5ywDSoWRn3735bwdc7hoa1gE=
